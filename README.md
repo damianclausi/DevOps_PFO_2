@@ -73,22 +73,35 @@ MYSQL_PASSWORD=demo
 ### 6.1 Usando la imagen publicada en Docker Hub (recomendado para la entrega)
 
 ```bash
+# Levantar todos los servicios en modo "daemon" (segundo plano)
+-d: ejecuta contenedores en background, libera la terminal
 docker-compose up -d
+
+# Una vez levantado, acceder a:
 # Web: http://localhost:8080
 ```
 
 ### 6.2 Forzar pull desde Docker Hub (validación)
 
 ```bash
+# Detener todos los servicios del compose
 docker-compose down
+
+# Eliminar imágenes locales para forzar descarga desde Docker Hub
+# || true: continúa aunque la imagen no exista (evita errores)
 docker rmi pfo2-web:latest || true
 docker rmi damian2k/pfo2-web:1.0 || true
+
+# Levantar servicios (forzará pull desde Docker Hub)
 docker-compose up -d
 ```
 
 ### 6.3 Construcción local (variante `docker-compose.yml.local`)
 
 ```bash
+# Usar archivo compose alternativo para build local
+# -f: especifica archivo compose personalizado
+# --build: fuerza rebuild de imágenes (ignora cache)
 docker-compose -f docker-compose.yml.local up -d --build
 ```
 
@@ -101,31 +114,42 @@ docker-compose -f docker-compose.yml.local up -d --build
 ### 7.1 Imágenes, contenedores y logs
 
 ```bash
-# Ver servicios en ejecución
+# Ver estado y salud de todos los servicios
+# Muestra: nombre, imagen, comando, estado, puertos
 docker-compose ps
 
-# Ver imágenes asociadas a los servicios
+# Ver información detallada de las imágenes Docker utilizadas
+# Incluye: repositorio, tag, plataforma, ID, tamaño
 docker-compose images
 
-# Logs de cada servicio
-docker-compose logs db  --tail 50
+# Ver logs en tiempo real de cada servicio
+# --tail 50: muestra solo las últimas 50 líneas
+docker-compose logs db --tail 50
 docker-compose logs web --tail 50
+
+# Para seguir logs en vivo agregar -f:
+# docker-compose logs -f web
 ```
 
 ### 7.2 Build/Tag/Push de la imagen propia
 
 ```bash
-# Construir imagen local (cuando se usa build)
+# Construir imagen local usando Dockerfile del directorio actual
+# -t: asigna tag/nombre a la imagen
 docker build -t pfo2-web:latest .
 
-# Etiquetar con nuestro repositorio en Docker Hub
+# Crear tags adicionales para publicar en Docker Hub
+# Formato: docker tag <imagen-local> <usuario-dockerhub>/<repo>:<version>
 docker tag pfo2-web:latest damian2k/pfo2-web:1.0
-
 docker tag pfo2-web:latest damian2k/pfo2-web:latest
 
-# Publicar en Docker Hub
+# Publicar imágenes en Docker Hub (requiere docker login previo)
+# Se publican ambas versiones: específica (1.0) y latest
 docker push damian2k/pfo2-web:1.0
 docker push damian2k/pfo2-web:latest
+
+# Nota: docker login debe ejecutarse antes del primer push
+# docker login -u damian2k
 ```
 
 ### 7.3 SQL de inicialización (si la home no autogenera datos)
@@ -138,9 +162,12 @@ CREATE TABLE IF NOT EXISTS personas (
 INSERT INTO personas (nombre) VALUES ('Ada Lovelace'), ('Alan Turing');
 ```
 
-> También puede ejecutarse por CLI:
+> También puede ejecutarse por CLI (desde terminal del host):
 
 ```bash
+# Ejecutar comandos SQL directamente en el contenedor MySQL
+# exec -T: ejecuta comando sin TTY (permite redirección)
+# <<'SQL': heredoc, permite comandos SQL multilínea
 docker-compose exec -T db mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" <<'SQL'
 CREATE TABLE IF NOT EXISTS personas (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -148,19 +175,66 @@ CREATE TABLE IF NOT EXISTS personas (
 );
 INSERT INTO personas (nombre) VALUES ('Ada Lovelace'), ('Alan Turing');
 SQL
+
+# Alternativa: ejecutar SQL desde archivo
+# docker-compose exec -T db mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" < script.sql
 ```
 
 ### 7.4 Bajar/levantar el stack
 
 ```bash
-# Apagar
+# Detener todos los servicios del proyecto
+# Los contenedores se paran pero conservan datos y configuración
 docker-compose down
 
-# Apagar y borrar datos de MySQL (¡destructivo!)
+# PELIGRO: Detener y eliminar TODOS los datos persistentes
+# -v: elimina volúmenes nombrados (pérdida total de datos MySQL)
 docker-compose down -v
 
-# Levantar (pull o build según archivo usado)
+# Levantar servicios nuevamente
+# Comportamiento depende del archivo compose usado:
+# - docker-compose.yml: hace pull de imagen desde Docker Hub
+# - docker-compose.yml.local: hace build local de imagen
 docker-compose up -d
+
+# Comandos adicionales útiles:
+# docker-compose restart web    # Reiniciar solo servicio web
+# docker-compose stop          # Parar sin eliminar contenedores
+# docker-compose start         # Iniciar contenedores existentes
+```
+
+### 7.5 Comandos de troubleshooting y debugging
+
+```bash
+# Verificar estado de servicios y diagnóstico
+docker-compose ps -a              # Ver todos los contenedores (incluso parados)
+docker-compose top               # Ver procesos ejecutándose en contenedores
+
+# Inspección detallada de servicios
+docker inspect pfo2-web          # Información completa del contenedor web
+docker inspect pfo2-mysql        # Información completa del contenedor MySQL
+
+# Acceso interactivo a contenedores para debugging
+docker-compose exec web bash     # Shell interactivo en contenedor web
+docker-compose exec db bash      # Shell interactivo en contenedor MySQL
+
+# Verificar conectividad de red entre contenedores
+docker-compose exec web ping db  # Probar conectividad web -> db
+docker network ls                # Listar redes Docker
+docker network inspect pfo2_default  # Inspeccionar red del proyecto
+
+# Monitoreo de recursos y rendimiento
+docker stats                     # Ver uso de CPU/memoria en tiempo real
+docker-compose logs -f --tail=100   # Seguir logs de todos los servicios
+
+# Limpieza y mantenimiento
+docker system prune              # Eliminar recursos no utilizados
+docker volume ls                 # Listar volúmenes persistentes
+docker images | grep pfo2        # Ver imágenes relacionadas al proyecto
+
+# Validar configuración antes de ejecutar
+docker-compose config            # Verificar sintaxis del compose
+docker-compose config --services # Listar servicios definidos
 ```
 
 ---
@@ -233,27 +307,42 @@ Para cumplir con el punto 6 de la PFO2 ("Desde MySQL Workbench conectarse al ser
 ### 9.2 Comandos SQL ejecutados
 
 ```sql
--- Verificar base de datos
+-- Verificar que la base de datos demo existe
+-- Lista todas las bases de datos disponibles en el servidor
 SHOW DATABASES;
 
--- Usar la base de datos demo
+-- Seleccionar la base de datos demo para trabajar
+-- Todos los comandos siguientes se ejecutarán en esta BD
 USE demo;
 
--- Verificar tablas existentes
+-- Listar todas las tablas existentes en la base de datos demo
+-- Debería mostrar: personas (creada automáticamente por la app)
 SHOW TABLES;
 
--- Ver estructura de la tabla personas
+-- Ver la estructura completa de la tabla personas
+-- Muestra: nombres de columnas, tipos de datos, restricciones
 DESCRIBE personas;
 
--- Consultar datos existentes
+-- Consultar todos los registros de la tabla personas
+-- Equivalente a: SELECT id, nombre FROM personas;
 SELECT * FROM personas;
 
--- Los datos iniciales ya están insertados automáticamente
--- Opcionalmente se pueden agregar más registros:
--- INSERT INTO personas (nombre) VALUES ('Grace Hopper');
+-- Los datos iniciales ya están insertados automáticamente por la app
+-- La primera vez que se accede a localhost:8080, se crean:
+-- INSERT INTO personas (nombre) VALUES ('Ada Lovelace'), ('Alan Turing');
 
--- Verificar los nuevos datos
+-- Opcionalmente se pueden agregar más registros manualmente:
+-- INSERT INTO personas (nombre) VALUES ('Grace Hopper');
+-- INSERT INTO personas (nombre) VALUES ('Margaret Hamilton');
+
+-- Verificar todos los datos incluyendo nuevos registros
+-- ORDER BY id: ordena resultados por ID ascendente
 SELECT id, nombre FROM personas ORDER BY id;
+
+-- Comandos adicionales útiles para exploración:
+-- SELECT COUNT(*) FROM personas;           -- Contar registros totales
+-- SELECT * FROM personas WHERE id = 1;    -- Buscar por ID específico
+-- DELETE FROM personas WHERE id = 3;      -- Eliminar registro (¡cuidado!)
 ```
 
 ### 9.3 Evidencias
@@ -341,7 +430,7 @@ db:
 
 ### 10.3 Problemas de Variables de Entorno
 
-#### Problema: Credenciales hardcodeadas en el código
+### 10.4 Problema: Credenciales hardcodeadas en el código
 
 **Descripción**: Inicialmente las credenciales estaban escritas directamente en el código PHP.
 
@@ -372,25 +461,6 @@ $pass = getenv('DB_PASS') ?: 'demo';
 ```text
 .env
 *.log
-```
-
-### 10.4 Problemas con Extensiones PHP
-
-#### Problema: "Class 'PDO' not found"
-
-**Descripción**: Error al intentar conectar a MySQL desde PHP.
-
-**Causa**: La imagen base `php:8.2-apache` no incluye la extensión PDO MySQL.
-
-**Solución en Dockerfile**:
-
-```dockerfile
-FROM php:8.2-apache
-
-# ✅ Instalar extensión PDO MySQL
-RUN docker-php-ext-install pdo_mysql
-
-COPY src/ /var/www/html/
 ```
 
 ### 10.5 Problemas de Persistencia de Datos
@@ -434,128 +504,7 @@ docker tag pfo2-web:latest damian2k/pfo2-web:1.0
 docker push damian2k/pfo2-web:1.0
 ```
 
-#### Problema: Imagen muy pesada
-
-**Descripción**: La imagen inicial pesaba más de 500MB.
-
-**Optimización aplicada**:
-
-* Usar imagen base optimizada (`php:8.2-apache` en lugar de ubuntu + apache + php)
-* Minimizar archivos copiados
 * Resultado: imagen final de ~176MB
-
-### 10.7 Problemas de Documentación
-
-#### Problema: Imágenes no se mostraban en GitHub
-
-**Descripción**: Los screenshots no aparecían en el README de GitHub.
-
-**Causa**: Rutas incorrectas en la sintaxis Markdown.
-
-**Solución**:
-
-```markdown
-# ❌ Incorrecto
-![Imagen](screenshots/imagen.png)
-
-# ✅ Correcto  
-![Imagen](./screenshots/imagen.png)
-```
-
-#### Problema: Errores de formato Markdown
-
-**Descripción**: Múltiples errores de linting MD (headings, listas, bloques de código).
-
-**Soluciones aplicadas**:
-
-* Agregar lenguajes a bloques de código: ` ```bash`, ` ```yaml`, ` ```text`
-* Espacios alrededor de headings
-* Usar asteriscos (*) en lugar de guiones (-) para listas
-* Espacios alrededor de listas
-
-### 10.8 Problemas de Compatibilidad de Puertos
-
-#### Problema: "Port 3306 already in use"
-
-**Descripción**: Error al levantar MySQL porque el puerto ya estaba ocupado.
-
-**Causa**: MySQL local o otro contenedor usando el mismo puerto.
-
-**Soluciones disponibles**:
-
-```bash
-# Opción 1: Cambiar puerto en docker-compose.yml
-ports:
-  - "3307:3306"  # Puerto externo diferente
-
-# Opción 2: Parar servicio MySQL local
-sudo systemctl stop mysql
-
-# Opción 3: Ver qué proceso usa el puerto
-sudo netstat -tlnp | grep :3306
-```
-
-### 10.9 Problemas de Conexión desde MySQL Workbench
-
-#### Problema: "Connection refused" desde Workbench
-
-**Descripción**: No se podía conectar desde MySQL Workbench al contenedor.
-
-**Diagnóstico y solución**:
-
-1. **Verificar que el contenedor esté corriendo**:
-
-```bash
-docker ps | grep mysql
-```
-
-1. **Verificar puerto expuesto**:
-
-```bash
-docker port pfo2-mysql
-```
-
-1. **Configuración correcta en Workbench**:
-
-* Host: `localhost` (no `db`)
-* Puerto: `3306`
-* Usuario: `demo` (no `root` inicialmente)
-* Contraseña: `demo`
-
-### 10.10 Problemas de Consistencia entre Código y Capturas
-
-#### Problema: Inconsistencia entre código y evidencias visuales
-
-**Descripción**: Durante la finalización de la práctica se detectó que el código PHP inicializaba 5 registros en la base de datos, pero las capturas de pantalla existentes mostraban solo 2 registros.
-
-**Causa identificada**: El desarrollo evolucionó y se agregaron más personas al dataset inicial sin actualizar las capturas correspondientes.
-
-**Impacto**: Las evidencias visuales no coincidían con el comportamiento real del código, comprometiendo la integridad de la documentación.
-
-**Solución implementada**:
-
-```php
-// Código adaptado para coincidir con las capturas existentes
-if ($count === 0) {
-    $pdo->exec("
-      INSERT INTO personas (nombre)
-      VALUES ('Ada Lovelace'), ('Alan Turing')
-    ");
-}
-```
-
-**Archivos modificados**:
-
-* `src/index.php`: Reducido dataset inicial de 5 a 2 personas
-* `README.md`: Actualizada documentación SQL y ejemplos de código
-* Secciones afectadas: 7.3, 9.2, 11.4
-
-**Beneficios de esta solución**:
-
-* ✅ Consistencia total entre código, documentación y capturas
-* ✅ No requiere regenerar screenshots existentes
-* ✅ Mantiene integridad de evidencias para entrega académica
-* ✅ Documentación precisa y verificable
 
 ### 10.11 Problemas Encontrados y Soluciones Propuestas
 
@@ -568,197 +517,7 @@ if ($count === 0) {
 7. **Optimizar imágenes Docker** para reducir tamaño y tiempo de descarga
 8. **Verificar compatibilidad de puertos** antes de levantar servicios
 9. **Mantener consistencia** entre código, documentación y evidencias visuales
-10. **Validar capturas** antes de finalizar entregables académicos
-
----
-
-## 11) Publicación en GitHub
-
-Repositorio (privado):
-
-```text
-https://github.com/damianclausi/DevOps_PFO_2_ComD_GrupoElQuintoElemento_Clausi_Descosido_Gill
-```
-
-### Pasos (resumen)
-
-```bash
-# Proteger secretos
-touch .env .env.example
-# (Rellenar .env con valores reales y .env.example con placeholders)
-
-# Ignorar .env real
-cat > .gitignore << 'EOF'
-.env
-node_modules/
-vendor/
-.DS_Store
-*.log
-EOF
-
-# Commit inicial
-git init
-git add Dockerfile docker-compose.yml docker-compose.yml.local src/ README.md .gitignore .env.example
-git commit -m "PFO2: stack Docker (web+db), imagen publicada y README"
-
-git branch -M main
-# Añadir remoto y push (si ya se creó el repo privado desde la web)
-git remote add origin "git@github.com:damianclausi/DevOps_PFO_2_ComD_GrupoElQuintoElemento_Clausi_Descosido_Gill.git"
-git push -u origin main
-```
-
----
-
-## 11) Archivos principales (referencia)
-
-### 11.1 `Dockerfile`
-
-```dockerfile
-FROM php:8.2-apache
-
-# Extensión para conectarse a MySQL
-RUN docker-php-ext-install pdo_mysql
-
-# Código de la app
-COPY src/ /var/www/html/
-```
-
-### 11.2 `docker-compose.yml` (usa imagen publicada)
-
-```yaml
-services:
-  db:
-    image: mysql:8.0
-    container_name: pfo2-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    command: --default-authentication-plugin=mysql_native_password
-    ports:
-      - "3306:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
-  web:
-    image: damian2k/pfo2-web:1.0
-    container_name: pfo2-web
-    environment:
-      DB_HOST: db
-      DB_NAME: ${MYSQL_DATABASE}
-      DB_USER: ${MYSQL_USER}
-      DB_PASS: ${MYSQL_PASSWORD}
-    ports:
-      - "8080:80"
-    depends_on:
-      - db
-
-volumes:
-  db_data:
-```
-
-### 11.3 `docker-compose.yml.local` (build local)
-
-```yaml
-services:
-  db:
-    image: mysql:8.0
-    container_name: pfo2-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    command: --default-authentication-plugin=mysql_native_password
-    ports:
-      - "3306:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
-  web:
-    build: .
-    container_name: pfo2-web
-    environment:
-      DB_HOST: db
-      DB_NAME: ${MYSQL_DATABASE}
-      DB_USER: ${MYSQL_USER}
-      DB_PASS: ${MYSQL_PASSWORD}
-    ports:
-      - "8080:80"
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  db_data:
-```
-
-### 11.4 `src/index.php`
-
-```php
-<?php
-$host = getenv('DB_HOST') ?: '127.0.0.1';
-$db   = getenv('DB_NAME') ?: 'demo';
-$user = getenv('DB_USER') ?: 'demo';
-$pass = getenv('DB_PASS') ?: 'demo';
-
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    ]);
-
-    // Crear tabla si no existe
-    $pdo->exec("
-      CREATE TABLE IF NOT EXISTS personas (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nombre VARCHAR(100) NOT NULL
-      )
-    ");
-
-    // Insertar datos si está vacía
-    $count = (int)$pdo->query("SELECT COUNT(*) FROM personas")->fetchColumn();
-    if ($count === 0) {
-        $pdo->exec("
-          INSERT INTO personas (nombre)
-          VALUES ('Ada Lovelace'), ('Alan Turing')
-        ");
-    }
-
-    // Traer filas
-    $rows = $pdo->query("SELECT id, nombre FROM personas ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
-
-} catch (Exception $e) {
-    http_response_code(500);
-    die('Error de conexión: ' . htmlspecialchars($e->getMessage()));
-}
-?>
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>PFO2 – Personas</title>
-</head>
-<body>
-  <h1>Personas</h1>
-  <ul>
-    <?php foreach ($rows as $r): ?>
-      <li>#<?= htmlspecialchars($r['id']) ?> – <?= htmlspecialchars($r['nombre']) ?></li>
-    <?php endforeach; ?>
-  </ul>
-</body>
-</html>
-```
+10. **Validar capturas** antes de finalizar entregables
 
 ---
 
