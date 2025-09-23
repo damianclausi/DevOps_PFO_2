@@ -248,11 +248,9 @@ DESCRIBE personas;
 -- Consultar datos existentes
 SELECT * FROM personas;
 
--- Agregar más registros para pruebas
-INSERT INTO personas (nombre) VALUES 
-('Grace Hopper'),
-('Margaret Hamilton'),
-('Katherine Johnson');
+-- Los datos iniciales ya están insertados automáticamente
+-- Opcionalmente se pueden agregar más registros:
+-- INSERT INTO personas (nombre) VALUES ('Grace Hopper');
 
 -- Verificar los nuevos datos
 SELECT id, nombre FROM personas ORDER BY id;
@@ -524,7 +522,42 @@ docker port pfo2-mysql
 * Usuario: `demo` (no `root` inicialmente)
 * Contraseña: `demo`
 
-### 10.10 Problemas Encontrados y Soluciones Propuestas
+### 10.10 Problemas de Consistencia entre Código y Capturas
+
+#### Problema: Inconsistencia entre código y evidencias visuales
+
+**Descripción**: Durante la finalización de la práctica se detectó que el código PHP inicializaba 5 registros en la base de datos, pero las capturas de pantalla existentes mostraban solo 2 registros.
+
+**Causa identificada**: El desarrollo evolucionó y se agregaron más personas al dataset inicial sin actualizar las capturas correspondientes.
+
+**Impacto**: Las evidencias visuales no coincidían con el comportamiento real del código, comprometiendo la integridad de la documentación.
+
+**Solución implementada**:
+
+```php
+// Código adaptado para coincidir con las capturas existentes
+if ($count === 0) {
+    $pdo->exec("
+      INSERT INTO personas (nombre)
+      VALUES ('Ada Lovelace'), ('Alan Turing')
+    ");
+}
+```
+
+**Archivos modificados**:
+
+* `src/index.php`: Reducido dataset inicial de 5 a 2 personas
+* `README.md`: Actualizada documentación SQL y ejemplos de código
+* Secciones afectadas: 7.3, 9.2, 11.4
+
+**Beneficios de esta solución**:
+
+* ✅ Consistencia total entre código, documentación y capturas
+* ✅ No requiere regenerar screenshots existentes
+* ✅ Mantiene integridad de evidencias para entrega académica
+* ✅ Documentación precisa y verificable
+
+### 10.11 Problemas Encontrados y Soluciones Propuestas
 
 1. **Siempre usar variables de entorno** para configuraciones sensibles
 2. **Implementar health checks** en servicios críticos como bases de datos
@@ -534,6 +567,8 @@ docker port pfo2-mysql
 6. **Usar .gitignore** apropiado para proteger secretos
 7. **Optimizar imágenes Docker** para reducir tamaño y tiempo de descarga
 8. **Verificar compatibilidad de puertos** antes de levantar servicios
+9. **Mantener consistencia** entre código, documentación y evidencias visuales
+10. **Validar capturas** antes de finalizar entregables académicos
 
 ---
 
@@ -683,14 +718,26 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     ]);
 
-    // Crear tabla y datos si no existen
-    $pdo->exec("CREATE TABLE IF NOT EXISTS personas (id INT AUTO_INCREMENT PRIMARY KEY, nombre VARCHAR(100) NOT NULL)");
+    // Crear tabla si no existe
+    $pdo->exec("
+      CREATE TABLE IF NOT EXISTS personas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(100) NOT NULL
+      )
+    ");
+
+    // Insertar datos si está vacía
     $count = (int)$pdo->query("SELECT COUNT(*) FROM personas")->fetchColumn();
     if ($count === 0) {
-        $pdo->exec("INSERT INTO personas (nombre) VALUES ('Ada Lovelace'), ('Alan Turing')");
+        $pdo->exec("
+          INSERT INTO personas (nombre)
+          VALUES ('Ada Lovelace'), ('Alan Turing')
+        ");
     }
 
+    // Traer filas
     $rows = $pdo->query("SELECT id, nombre FROM personas ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+
 } catch (Exception $e) {
     http_response_code(500);
     die('Error de conexión: ' . htmlspecialchars($e->getMessage()));
