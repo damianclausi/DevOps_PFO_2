@@ -1,8 +1,8 @@
-# DevOps\_PFO\_2\_ComD\_GrupoElQuintoElemento\_Clausi\_Descosido\_Gill
+# DevOps PFO 2 ComD Grupo El Quinto Elemento
 
 > **Materia:** Seminario de Actualización DevOps (IFTS 29)
 > **Entrega:** PFO Nº2 – Contenedores, imágenes y publicación
-> **Autor/es:** Clausí – Descosido – Gill (Grupo “El Quinto Elemento”)
+> **Autor/es:** Clausi Damian – Descosido Cristian – Gill Cesar Antonio (Grupo “El Quinto Elemento”)
 
 ---
 
@@ -17,7 +17,7 @@
 
 ## 2) Arquitectura
 
-```
+```text
 Navegador → http://localhost:8080 → [ web (PHP+Apache) ] --(bridge)--> [ db (MySQL 8) ]
 ```
 
@@ -36,7 +36,7 @@ Navegador → http://localhost:8080 → [ web (PHP+Apache) ] --(bridge)--> [ db 
 
 ## 4) Estructura del repositorio
 
-```
+```text
 ./
 ├─ Dockerfile
 ├─ docker-compose.yml              # Usa la imagen publicada en Docker Hub
@@ -169,7 +169,7 @@ docker-compose up -d
 
 ### 8.1 `docker-compose ps`
 
-```
+```text
 NAME         IMAGE                   COMMAND                  SERVICE   CREATED         STATUS                   PORTS
 pfo2-mysql   mysql:8.0               "docker-entrypoint.s…"   db        6 minutes ago   Up 6 minutes (healthy)   0.0.0.0:3306->3306/tcp, [::]:3306->3306/tcp
 pfo2-web     damian2k/pfo2-web:1.0   "docker-php-entrypoi…"   web       6 minutes ago   Up 6 minutes             0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
@@ -177,7 +177,7 @@ pfo2-web     damian2k/pfo2-web:1.0   "docker-php-entrypoi…"   web       6 minu
 
 ### 8.2 `docker-compose images`
 
-```
+```text
 CONTAINER    REPOSITORY          TAG   PLATFORM     IMAGE ID      SIZE   CREATED
 pfo2-mysql   mysql               8.0   linux/amd64  d2fdd0af2893  236MB  32 minutes ago
 pfo2-web     damian2k/pfo2-web   1.0   linux/amd64  a955c2812b47  176MB   7 minutes ago
@@ -185,15 +185,90 @@ pfo2-web     damian2k/pfo2-web   1.0   linux/amd64  a955c2812b47  176MB   7 minu
 
 ### 8.3 Capturas incluidas en `./screenshots/`
 
+#### Docker Hub
+
 * `dockerhub1.png`: vista general del repositorio en Docker Hub.
 * `dockerhub2.png`: vista de **tags** en Docker Hub.
+
+![Vista del repositorio en Docker Hub](./screenshots/dockerhub1.png)
+
+![Tags disponibles en Docker Hub](./screenshots/dockerhub2.png)
+
+#### Aplicación Web
+
 * `localhost.png`: Home en `http://localhost:8080` con el listado de personas.
+
+![Aplicación web funcionando en localhost:8080](./screenshots/localhost.png)
+
+#### MySQL Workbench
+
+* `mysql1.png`: Conexión desde MySQL Workbench al contenedor MySQL.
+* `mysql2.png`: Vista de la base de datos `demo` y tabla `personas` en MySQL Workbench.
+* `mysql3.png`: Consulta SELECT mostrando los datos de la tabla `personas`.
+
+![Conexión MySQL Workbench](./screenshots/mysql1.png)
+
+![Base de datos en MySQL Workbench](./screenshots/mysql2.png)
+
+![Datos de la tabla personas](./screenshots/mysql3.png)
 
 > **Aviso Compose:** si aparece `the attribute version is obsolete`, se puede **eliminar** la línea `version:` del compose sin afectar el funcionamiento.
 
 ---
 
-## 9) Problemas comunes y solución
+## 9) Conexión con MySQL Workbench
+
+Para cumplir con el punto 6 de la PFO2 ("Desde MySQL Workbench conectarse al servidor y crear una base de datos con una tabla"):
+
+### 9.1 Configuración de la conexión
+
+1. **Abrir MySQL Workbench**
+2. **Crear nueva conexión** con los siguientes parámetros:
+   * **Connection Name**: `PFO2 Local`
+   * **Hostname**: `localhost` (o `127.0.0.1`)
+   * **Port**: `3306`
+   * **Username**: `demo` (valor de `MYSQL_USER` en `.env`)
+   * **Password**: `demo` (valor de `MYSQL_PASSWORD` en `.env`)
+
+### 9.2 Comandos SQL ejecutados
+
+```sql
+-- Verificar base de datos
+SHOW DATABASES;
+
+-- Usar la base de datos demo
+USE demo;
+
+-- Verificar tablas existentes
+SHOW TABLES;
+
+-- Ver estructura de la tabla personas
+DESCRIBE personas;
+
+-- Consultar datos existentes
+SELECT * FROM personas;
+
+-- Agregar más registros para pruebas
+INSERT INTO personas (nombre) VALUES 
+('Grace Hopper'),
+('Margaret Hamilton'),
+('Katherine Johnson');
+
+-- Verificar los nuevos datos
+SELECT id, nombre FROM personas ORDER BY id;
+```
+
+### 9.3 Evidencias
+
+Las capturas `mysql1.png`, `mysql2.png` y `mysql3.png` muestran:
+
+* Conexión exitosa desde MySQL Workbench
+* Visualización de la base de datos y tabla
+* Ejecución de consultas SQL y resultados
+
+---
+
+## 10) Problemas comunes y solución
 
 * **`port is already allocated`** → Cambiar puertos en `docker-compose.yml` (ej.: `8081:80`, `3307:3306`) y volver a levantar.
 * **La web no conecta a MySQL al inicio** → Esperar unos segundos a que `db` quede `healthy`; revisar `docker-compose logs db`.
@@ -206,7 +281,7 @@ pfo2-web     damian2k/pfo2-web   1.0   linux/amd64  a955c2812b47  176MB   7 minu
 
 Repositorio (privado):
 
-```
+```text
 https://github.com/damianclausi/DevOps_PFO_2_ComD_GrupoElQuintoElemento_Clausi_Descosido_Gill
 ```
 
