@@ -1,10 +1,10 @@
-# DevOps PFO 2 ComD Grupo El Quinto Elemento
+# IFTS 29 - Tecnicatura en Desarrollo de Software
 
-> **Materia:** Seminario de Actualización DevOps (IFTS 29)
-> **Entrega:** PFO Nº2 – Contenedores, imágenes y publicación
-> **Autor/es:** Clausi Damian – Descosido Cristian – Gill Cesar Antonio (Grupo “El Quinto Elemento”)
+## Seminario de actualización DevOps - 3° D
 
----
+**Práctica formativa obligatorio 2**
+**Alumnos:** Damián Andrés Clausi, Descosido Cristian, Gill César Antonio  
+**Profesor:** Javier Blanco
 
 ## 1) Objetivo
 
@@ -275,11 +275,13 @@ Durante la realización de esta práctica formativa, se experimentaron diversos 
 ### 10.1 Problemas de Configuración de Docker
 
 #### Problema: Docker no iniciaba en WSL/Linux
+
 **Descripción**: Al intentar ejecutar comandos Docker, aparecía el error "Cannot connect to the Docker daemon".
 
 **Causa**: El servicio Docker no estaba ejecutándose o WSL no tenía acceso al Docker Desktop de Windows.
 
 **Solución aplicada**:
+
 ```bash
 # Verificar estado del servicio Docker
 sudo systemctl status docker
@@ -296,11 +298,13 @@ sudo systemctl start docker
 ### 10.2 Problemas de Conexión entre Contenedores
 
 #### Problema: La aplicación web no conectaba a MySQL
+
 **Descripción**: La página web mostraba "Error de conexión" al intentar acceder a la base de datos.
 
 **Causa Original**: Se usaba `localhost` como host de conexión en lugar del nombre del servicio Docker.
 
 **Solución implementada**:
+
 ```php
 // ❌ Incorrecto - no funciona entre contenedores
 $host = 'localhost';
@@ -310,6 +314,7 @@ $host = getenv('DB_HOST') ?: 'db';
 ```
 
 **Configuración en docker-compose.yml**:
+
 ```yaml
 web:
   environment:
@@ -317,9 +322,11 @@ web:
 ```
 
 #### Problema: Conexión rechazada al inicio
+
 **Descripción**: Aunque se corrigió el host, a veces la web fallaba al iniciar porque MySQL no estaba listo.
 
 **Solución implementada**:
+
 ```yaml
 web:
   depends_on:
@@ -337,12 +344,15 @@ db:
 ### 10.3 Problemas de Variables de Entorno
 
 #### Problema: Credenciales hardcodeadas en el código
+
 **Descripción**: Inicialmente las credenciales estaban escritas directamente en el código PHP.
 
 **Riesgo identificado**: Las credenciales quedarían expuestas en el repositorio público.
 
 **Solución implementada**:
+
 1. **Crear archivo `.env`** para variables sensibles:
+
 ```bash
 MYSQL_ROOT_PASSWORD=secret
 MYSQL_DATABASE=demo
@@ -350,7 +360,8 @@ MYSQL_USER=demo
 MYSQL_PASSWORD=demo
 ```
 
-2. **Modificar código PHP** para usar variables de entorno:
+1. **Modificar código PHP** para usar variables de entorno:
+
 ```php
 $host = getenv('DB_HOST') ?: '127.0.0.1';
 $db   = getenv('DB_NAME') ?: 'demo';
@@ -358,7 +369,8 @@ $user = getenv('DB_USER') ?: 'demo';
 $pass = getenv('DB_PASS') ?: 'demo';
 ```
 
-3. **Configurar `.gitignore`** para proteger secretos:
+1. **Configurar `.gitignore`** para proteger secretos:
+
 ```text
 .env
 *.log
@@ -367,11 +379,13 @@ $pass = getenv('DB_PASS') ?: 'demo';
 ### 10.4 Problemas con Extensiones PHP
 
 #### Problema: "Class 'PDO' not found"
+
 **Descripción**: Error al intentar conectar a MySQL desde PHP.
 
 **Causa**: La imagen base `php:8.2-apache` no incluye la extensión PDO MySQL.
 
 **Solución en Dockerfile**:
+
 ```dockerfile
 FROM php:8.2-apache
 
@@ -384,11 +398,13 @@ COPY src/ /var/www/html/
 ### 10.5 Problemas de Persistencia de Datos
 
 #### Problema: Datos perdidos al reiniciar contenedores
+
 **Descripción**: Cada vez que se reiniciaba el contenedor MySQL, se perdían todos los datos.
 
 **Causa**: No se configuró persistencia de volúmenes.
 
 **Solución implementada**:
+
 ```yaml
 services:
   db:
@@ -402,11 +418,13 @@ volumes:
 ### 10.6 Problemas de Publicación en Docker Hub
 
 #### Problema: "Access denied" al hacer push
+
 **Descripción**: Error al intentar subir la imagen a Docker Hub.
 
 **Causa**: No se había iniciado sesión en Docker Hub desde la terminal.
 
 **Solución**:
+
 ```bash
 # Iniciar sesión en Docker Hub
 docker login
@@ -419,21 +437,25 @@ docker push damian2k/pfo2-web:1.0
 ```
 
 #### Problema: Imagen muy pesada
+
 **Descripción**: La imagen inicial pesaba más de 500MB.
 
 **Optimización aplicada**:
-- Usar imagen base optimizada (`php:8.2-apache` en lugar de ubuntu + apache + php)
-- Minimizar archivos copiados
-- Resultado: imagen final de ~176MB
+
+* Usar imagen base optimizada (`php:8.2-apache` en lugar de ubuntu + apache + php)
+* Minimizar archivos copiados
+* Resultado: imagen final de ~176MB
 
 ### 10.7 Problemas de Documentación
 
 #### Problema: Imágenes no se mostraban en GitHub
+
 **Descripción**: Los screenshots no aparecían en el README de GitHub.
 
 **Causa**: Rutas incorrectas en la sintaxis Markdown.
 
 **Solución**:
+
 ```markdown
 # ❌ Incorrecto
 ![Imagen](screenshots/imagen.png)
@@ -443,22 +465,26 @@ docker push damian2k/pfo2-web:1.0
 ```
 
 #### Problema: Errores de formato Markdown
+
 **Descripción**: Múltiples errores de linting MD (headings, listas, bloques de código).
 
 **Soluciones aplicadas**:
-- Agregar lenguajes a bloques de código: ` ```bash`, ` ```yaml`, ` ```text`
-- Espacios alrededor de headings
-- Usar asteriscos (*) en lugar de guiones (-) para listas
-- Espacios alrededor de listas
+
+* Agregar lenguajes a bloques de código: ` ```bash`, ` ```yaml`, ` ```text`
+* Espacios alrededor de headings
+* Usar asteriscos (*) en lugar de guiones (-) para listas
+* Espacios alrededor de listas
 
 ### 10.8 Problemas de Compatibilidad de Puertos
 
 #### Problema: "Port 3306 already in use"
+
 **Descripción**: Error al levantar MySQL porque el puerto ya estaba ocupado.
 
 **Causa**: MySQL local o otro contenedor usando el mismo puerto.
 
 **Soluciones disponibles**:
+
 ```bash
 # Opción 1: Cambiar puerto en docker-compose.yml
 ports:
@@ -474,24 +500,29 @@ sudo netstat -tlnp | grep :3306
 ### 10.9 Problemas de Conexión desde MySQL Workbench
 
 #### Problema: "Connection refused" desde Workbench
+
 **Descripción**: No se podía conectar desde MySQL Workbench al contenedor.
 
 **Diagnóstico y solución**:
+
 1. **Verificar que el contenedor esté corriendo**:
+
 ```bash
 docker ps | grep mysql
 ```
 
-2. **Verificar puerto expuesto**:
+1. **Verificar puerto expuesto**:
+
 ```bash
 docker port pfo2-mysql
 ```
 
-3. **Configuración correcta en Workbench**:
-- Host: `localhost` (no `db`)
-- Puerto: `3306`
-- Usuario: `demo` (no `root` inicialmente)
-- Contraseña: `demo`
+1. **Configuración correcta en Workbench**:
+
+* Host: `localhost` (no `db`)
+* Puerto: `3306`
+* Usuario: `demo` (no `root` inicialmente)
+* Contraseña: `demo`
 
 ### 10.10 Problemas Encontrados y Soluciones Propuestas
 
