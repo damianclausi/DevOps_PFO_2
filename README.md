@@ -3,7 +3,7 @@
 ## Seminario de actualización DevOps - 3° D
 
 **Práctica formativa obligatorio 2**
-**Alumnos:** Damián Andrés Clausi, Descosido Cristian, Gill César Antonio  
+**Alumno:** Damián Andrés Clausi
 **Profesor:** Javier Blanco
 
 ## 1) Objetivo
