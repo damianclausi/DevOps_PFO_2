@@ -2,11 +2,14 @@
 
 ## Seminario de actualización DevOps - 3° D
 
-**Práctica formativa obligatorio 2**
+**Práctica formativa obligatoria 2**
 
 **Alumno:** Damián Andrés Clausi
 
 **Profesor:** Javier Blanco
+
+*Link a github:* [https://github.com/damianclausi/DevOps_PFO_2](https://github.com/damianclausi/DevOps_PFO_2)
+
 
 ## 1) Objetivo
 
