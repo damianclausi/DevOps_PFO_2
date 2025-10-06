@@ -10,6 +10,8 @@
 
 *Link a github:* [https://github.com/damianclausi/DevOps_PFO_2](https://github.com/damianclausi/DevOps_PFO_2)
 
+*Imagen en Docker Hub:* [https://hub.docker.com/r/damian2k/pfo2-web](https://hub.docker.com/r/damian2k/pfo2-web)
+
 
 ## 1) Objetivo
 
